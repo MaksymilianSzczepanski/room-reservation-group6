@@ -1,0 +1,111 @@
+﻿<!DOCTYPE html>
+{% load static %}
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wyszukaj sale</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-p1CmSxZ1ZqAV/gR0QLf7J6TEhYlVc3GQuc4GLHZcjHnTUMlzUxr87hcPLZ9eczsQnUnxkwxXHzkwmo7aXstPKw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="{% static 'room_reservations/css/search.css' %}">
+</head>
+<body data-is-authenticated="{% if user.is_authenticated %}1{% else %}0{% endif %}" data-show-login-modal="{% if show_login_modal %}1{% else %}0{% endif %}">
+  <div class="hero">
+    <div class="overlay"></div>
+    <div class="content">
+      <div class="top-actions">
+        {% if user.is_authenticated %}
+          {% if is_guardian %}
+            <a href="{% url 'guardian_dashboard' %}" class="auth-btn auth-link-btn">
+              <i class="fa-solid fa-bell"></i>
+              <span>Panel opiekuna</span>
+              <span class="mini-badge">{{ guardian_pending_count }}</span>
+            </a>
+          {% endif %}
+          <span class="user-badge">{{ user.username }}</span>
+          <form method="post" action="{% url 'logout' %}" class="logout-form">
+            {% csrf_token %}
+            <button type="submit" class="auth-btn auth-btn-secondary">Wyloguj</button>
+          </form>
+        {% else %}
+          <button type="button" id="open-login-modal" class="auth-btn">Zaloguj</button>
+        {% endif %}
+      </div>
+
+      <div class="logo-container">
+        <img src="{% static 'room_reservations/img/logo_clean.png' %}" alt="Logo UniwRersu" />
+      </div>
+      <h2 class="subtitle">Wyszukaj sale</h2>
+
+      <div class="search-container">
+        <form id="search-form">
+          <div class="field">
+            <span class="icon"><i class="fa-solid fa-location-dot"></i></span>
+            <label for="building">Budynek</label>
+            <input id="building" name="building" type="text" placeholder="np. Wydzial Informatyki" list="building-list" />
+            <datalist id="building-list"></datalist>
+          </div>
+
+          <div class="field">
+            <span class="icon"><i class="fa-solid fa-key"></i></span>
+            <label for="name">Sala</label>
+            <input id="name" name="name" type="text" placeholder="np. 105" list="name-list" />
+            <datalist id="name-list"></datalist>
+          </div>
+
+          <div class="field capacity">
+            <span class="icon"><i class="fa-solid fa-users"></i></span>
+            <label>Pojemnosc</label>
+            <div class="capacity-inputs">
+              <input id="min-capacity" name="min_capacity" type="number" min="0" placeholder="Od" />
+              <span class="dash"></span>
+              <input id="max-capacity" name="max_capacity" type="number" min="0" placeholder="Do" />
+            </div>
+          </div>
+
+          <button class="search-btn" id="btn-search" type="button" aria-label="Wyszukaj">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Szukaj</span>
+          </button>
+        </form>
+      </div>
+
+      <div class="attributes">
+        <div class="attr-title">Atrybuty</div>
+        <div id="attr-chips" class="chips"></div>
+      </div>
+
+      <div class="results" id="results"></div>
+    </div>
+  </div>
+
+  {% if not user.is_authenticated %}
+    <div id="login-modal" class="login-modal" aria-hidden="true">
+      <div class="login-backdrop" data-close-login></div>
+      <section class="login-panel" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+        <button type="button" class="login-close" aria-label="Zamknij" data-close-login>&times;</button>
+        <h3 id="login-modal-title">Logowanie</h3>
+        <p class="login-subtitle">Zaloguj sie, aby przejsc do rezerwacji.</p>
+
+        {% if login_error %}
+          <div class="login-error">{{ login_error }}</div>
+        {% endif %}
+
+        <form method="post" action="{% url 'modal_login' %}" class="login-form">
+          {% csrf_token %}
+          <label for="modal-username">Login</label>
+          <input id="modal-username" name="username" type="text" required autocomplete="username" />
+
+          <label for="modal-password">Haslo</label>
+          <input id="modal-password" name="password" type="password" required autocomplete="current-password" />
+
+          <input type="hidden" name="next" value="{{ next_target }}" />
+          <button type="submit" class="login-submit">Zaloguj</button>
+        </form>
+      </section>
+    </div>
+  {% endif %}
+
+  <script src="{% static 'room_reservations/js/search.js' %}"></script>
+</body>
+</html>

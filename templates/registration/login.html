@@ -1,0 +1,139 @@
+﻿<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Logowanie</title>
+  <style>
+    :root {
+      --bg-start: #f7f3ec;
+      --bg-end: #e6f0ea;
+      --card: #ffffff;
+      --text: #20312d;
+      --muted: #5a6a66;
+      --accent: #0f766e;
+      --accent-hover: #0b5f59;
+      --border: #d8e2dd;
+      --danger-bg: #fff1f2;
+      --danger-text: #9f1239;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 10%, #ffffff 0%, var(--bg-start) 45%, var(--bg-end) 100%);
+      padding: 1.2rem;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 2rem 1.5rem;
+      box-shadow: 0 12px 38px rgba(32, 49, 45, 0.12);
+    }
+
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.45rem;
+    }
+
+    .sub {
+      margin: 0 0 1.25rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    form {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 0.93rem;
+    }
+
+    input {
+      width: 100%;
+      margin-top: 0.35rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 0.85rem;
+      font-size: 0.95rem;
+    }
+
+    input:focus {
+      outline: 2px solid rgba(15, 118, 110, 0.22);
+      border-color: var(--accent);
+    }
+
+    .error {
+      background: var(--danger-bg);
+      color: var(--danger-text);
+      border: 1px solid #fbcfe8;
+      border-radius: 10px;
+      padding: 0.7rem 0.8rem;
+      font-size: 0.9rem;
+    }
+
+    button {
+      margin-top: 0.4rem;
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      border-radius: 10px;
+      padding: 0.78rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--accent-hover);
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Logowanie</h1>
+    <p class="sub">Zaloguj sie, aby przejsc do wyszukiwania sal.</p>
+
+    {% if form.non_field_errors %}
+      <div class="error">
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'login' %}">
+      {% csrf_token %}
+      <label for="id_username">
+        Login
+        <input id="id_username" name="username" type="text" required autofocus />
+      </label>
+      <label for="id_password">
+        Haslo
+        <input id="id_password" name="password" type="password" required />
+      </label>
+
+      {% if next %}
+        <input type="hidden" name="next" value="{{ next }}" />
+      {% endif %}
+
+      <button type="submit">Zaloguj</button>
+    </form>
+  </main>
+</body>
+</html>

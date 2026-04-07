@@ -1,0 +1,92 @@
+﻿<!DOCTYPE html>
+{% load static %}
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalendarz rezerwacji</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-p1CmSxZ1ZqAV/gR0QLf7J6TEhYlVc3GQuc4GLHZcjHnTUMlzUxr87hcPLZ9eczsQnUnxkwxXHzkwmo7aXstPKw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales-all.global.min.js"></script>
+  <link rel="stylesheet" href="{% static 'room_reservations/css/calendar.css' %}" />
+</head>
+<body>
+  <div class="hero">
+    <div class="overlay"></div>
+    <main class="content">
+      <div class="logo-container">
+        <img src="{% static 'room_reservations/img/logo_clean.png' %}" alt="Logo UniwRersu" />
+      </div>
+
+      <h1 class="page-title">Kalendarz rezerwacji</h1>
+
+      {% comment %} <section class="toolbar toolbar-hidden" aria-hidden="true">
+        <label for="room-select">Sala:</label>
+        <select id="room-select">
+          <option value="">Wszystkie</option>
+          {% for room in rooms %}
+            <option value="{{ room.id }}" {% if selected_room == room.id|stringformat:'s' %}selected{% endif %}>{{ room.name }}</option>
+          {% endfor %}
+        </select>
+      </section> {% endcomment %}
+
+      <section class="room-summary" id="room-summary">
+        <div class="summary-head">
+          <h2 id="room-name">Wszystkie sale</h2>
+          <span class="summary-badge" id="room-building">Brak filtra</span>
+        </div>
+        <div class="summary-meta">
+          <span id="room-capacity">Wybierz konkretna sale, aby zobaczyc szczegoly.</span>
+        </div>
+        <div class="summary-attrs" id="room-attrs"></div>
+        <div class="summary-actions">
+          <button type="button" id="reserve-btn" class="reserve-btn" disabled>Zarezerwuj</button>
+          <span id="reserve-hint" class="reserve-hint">Wybierz sale, aby zlozyc prosbe o rezerwacje.</span>
+        </div>
+        <p class="summary-desc" id="room-description"></p>
+      </section>
+
+      <section class="calendar-card">
+        <div id="calendar"></div>
+      </section>
+
+      <div id="reservation-toast" class="reservation-toast" aria-live="polite"></div>
+    </main>
+  </div>
+
+  <div id="reservation-modal" class="reservation-modal" aria-hidden="true">
+    <div class="reservation-backdrop" data-close-reservation></div>
+    <section class="reservation-panel" role="dialog" aria-modal="true" aria-labelledby="reservation-dialog-title">
+      <button type="button" class="reservation-close" aria-label="Zamknij" data-close-reservation>&times;</button>
+      <h3 id="reservation-dialog-title">Nowa rezerwacja</h3>
+      <p class="reservation-subtitle">Wyslij prosbe o rezerwacje sali. Status zostanie ustawiony na oczekujacy.</p>
+      <div id="reservation-error" class="reservation-error" hidden></div>
+
+      <form id="reservation-form" class="reservation-form">
+        <label for="reservation-form-title">Tytul rezerwacji</label>
+        <input id="reservation-form-title" name="title" type="text" maxlength="200" placeholder="Np. Spotkanie projektowe" required />
+        <label for="reservation-start">Poczatek</label>
+        <input id="reservation-start" name="start" type="datetime-local" required />
+
+        <label for="reservation-end">Koniec</label>
+        <input id="reservation-end" name="end" type="datetime-local" required />
+
+        <label for="reservation-note">Notatka (opcjonalnie)</label>
+        <textarea id="reservation-note" name="note" rows="3" placeholder="Np. konsultacje z grupa projektowa"></textarea>
+
+        <div class="reservation-actions">
+          <button type="button" class="cancel-btn" data-close-reservation>Anuluj</button>
+          <button type="submit" class="submit-btn">Wyslij prosbe</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script src="{% static 'room_reservations/js/calendar.js' %}?v=20260331a"></script>
+</body>
+</html>
+
+
+

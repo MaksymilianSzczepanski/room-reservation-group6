@@ -1,0 +1,220 @@
+﻿<!DOCTYPE html>
+{% load static %}
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel opiekuna sal</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-p1CmSxZ1ZqAV/gR0QLf7J6TEhYlVc3GQuc4GLHZcjHnTUMlzUxr87hcPLZ9eczsQnUnxkwxXHzkwmo7aXstPKw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="{% static 'room_reservations/css/guardian.css' %}" />
+</head>
+<body>
+  <div class="hero">
+    <div class="overlay"></div>
+    <main class="content">
+      <header class="topbar">
+        <a href="{% url 'search' %}" class="ghost-btn">Powrot do wyszukiwarki</a>
+        <div class="top-right">
+          <div class="bell {% if pending_count %}has-alert{% endif %}" title="Nierozpatrzone prosby">
+            <i class="fa-solid fa-bell"></i>
+            <span class="bell-count">{{ pending_count }}</span>
+          </div>
+          <span class="user-name">{{ request.user.username }}</span>
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="ghost-btn">Wyloguj</button>
+          </form>
+        </div>
+      </header>
+
+      {% if messages %}
+        <section class="flash-wrap">
+          {% for message in messages %}
+            <div class="flash flash-{{ message.tags|default:'info' }}">{{ message }}</div>
+          {% endfor %}
+        </section>
+      {% endif %}
+
+      <section class="dashboard-layout">
+        <aside class="sidebar">
+          <h1>Panel opiekuna</h1>
+          <p>Przegladaj sale i obsluguj prosby o rezerwacje.</p>
+
+          <nav class="sidebar-nav">
+            <button type="button" class="sidebar-link active" data-target="summary-section">
+              <i class="fa-solid fa-chart-simple"></i>
+              <span>Podsumowanie</span>
+            </button>
+            <button type="button" class="sidebar-link" data-target="rooms-section">
+              <i class="fa-solid fa-door-open"></i>
+              <span>Twoje sale</span>
+            </button>
+            <button type="button" class="sidebar-link" data-target="pending-section">
+              <i class="fa-solid fa-inbox"></i>
+              <span>Zgloszenia</span>
+              <span class="side-badge">{{ pending_count }}</span>
+            </button>
+            <button type="button" class="sidebar-link" data-target="history-section">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+              <span>Historia</span>
+            </button>
+          </nav>
+        </aside>
+
+        <div class="main-panel">
+          <section id="summary-section" class="dashboard-section active">
+            <div class="summary-grid">
+              <article class="metric-card">
+                <div class="metric-label">Przypisane sale</div>
+                <div class="metric-value">{{ rooms_count }}</div>
+              </article>
+              <article class="metric-card warn">
+                <div class="metric-label">Nierozpatrzone</div>
+                <div class="metric-value">{{ pending_count }}</div>
+              </article>
+              <article class="metric-card">
+                <div class="metric-label">Ostatnio rozpatrzone</div>
+                <div class="metric-value">{{ history_count }}</div>
+              </article>
+            </div>
+
+            <article class="card quick-card">
+              <h2>Co teraz?</h2>
+              <p>Kliknij sekcje Zgloszenia w sidebarze i wybierz konkretna prosbe, aby ja zaakceptowac lub odrzucic.</p>
+            </article>
+          </section>
+
+          <section id="rooms-section" class="dashboard-section">
+            <article class="card">
+              <h2>Twoje sale</h2>
+              {% if assigned_rooms %}
+                <div class="room-list">
+                  {% for room in assigned_rooms %}
+                    <div class="room-item">
+                      <div>
+                        <div class="room-name">{{ room.name }}</div>
+                        <div class="room-meta">{{ room.building|default:"Bez budynku" }} | {{ room.capacity }} miejsc</div>
+                      </div>
+                      <a class="action-link" href="{% url 'calendar' %}?room={{ room.id }}">Kalendarz</a>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="empty">Nie masz przypisanych sal.</p>
+              {% endif %}
+            </article>
+          </section>
+
+          <section id="pending-section" class="dashboard-section">
+            <article class="card">
+              <h2>Nierozpatrzone prosby</h2>
+              {% if pending_requests %}
+                <div class="request-list">
+                  {% for reservation in pending_requests %}
+                    <button
+                      type="button"
+                      class="request-item pending-card"
+                      data-id="{{ reservation.id }}"
+                      data-room="{{ reservation.room.name|escape }}"
+                      data-title="{{ reservation.title|default_if_none:''|escape }}"
+                      data-user="{{ reservation.user|escape }}"
+                      data-start="{{ reservation.start|date:'Y-m-d H:i' }}"
+                      data-end="{{ reservation.end|date:'Y-m-d H:i' }}"
+                      data-note="{{ reservation.note|default_if_none:''|escape }}"
+                      data-decision-url="{% url 'guardian_reservation_decision' reservation.id %}"
+                    >
+                      <div class="request-head">
+                        <span class="pill pending">Oczekuje</span>
+                        <strong>{{ reservation.title|default:"(Bez tytulu)" }}</strong>
+                      </div>
+                      <div class="request-meta">
+                        <span>Sala: {{ reservation.room.name }}</span>
+                        <span>Uzytkownik: {{ reservation.user }}</span>
+                        <span>Od: {{ reservation.start|date:"Y-m-d H:i" }}</span>
+                        <span>Do: {{ reservation.end|date:"Y-m-d H:i" }}</span>
+                      </div>
+                      <span class="click-hint">Kliknij, aby rozpatrzyc</span>
+                    </button>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="empty">Brak nierozpatrzonych prosb.</p>
+              {% endif %}
+            </article>
+          </section>
+
+          <section id="history-section" class="dashboard-section">
+            <article class="card">
+              <h2>Ostatnio rozpatrzone</h2>
+              {% if recent_requests %}
+                <div class="request-list">
+                  {% for reservation in recent_requests %}
+                    <div class="request-item compact">
+                      <div class="request-head">
+                        <span class="pill {{ reservation.status }}">
+                          {% if reservation.status == "approved" %}
+                            Zaakceptowana
+                          {% elif reservation.status == "rejected" %}
+                            Odrzucona
+                          {% elif reservation.status == "cancelled" %}
+                            Anulowana
+                          {% else %}
+                            Oczekuje
+                          {% endif %}
+                        </span>
+                        <strong>{{ reservation.title|default:"(Bez tytulu)" }}</strong>
+                      </div>
+                      <div class="request-meta">
+                        <span>Sala: {{ reservation.room.name }}</span>
+                        <span>Uzytkownik: {{ reservation.user }}</span>
+                        <span>Od: {{ reservation.start|date:"Y-m-d H:i" }}</span>
+                        <span>Do: {{ reservation.end|date:"Y-m-d H:i" }}</span>
+                        <span>Aktualizacja: {{ reservation.updated_at|date:"Y-m-d H:i" }}</span>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="empty">Brak historii rozpatrzonych prosb.</p>
+              {% endif %}
+            </article>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="decision-modal" class="decision-modal" aria-hidden="true">
+    <div class="decision-backdrop" data-close-decision></div>
+    <section class="decision-panel" role="dialog" aria-modal="true" aria-labelledby="decision-title">
+      <button type="button" class="decision-close" aria-label="Zamknij" data-close-decision>&times;</button>
+      <h3 id="decision-title">Rozpatrz prosbe</h3>
+      <div class="decision-info">
+        <p><strong>Tytul:</strong> <span id="decision-title-value"></span></p>
+        <p><strong>Sala:</strong> <span id="decision-room"></span></p>
+        <p><strong>Uzytkownik:</strong> <span id="decision-user"></span></p>
+        <p><strong>Od:</strong> <span id="decision-start"></span></p>
+        <p><strong>Do:</strong> <span id="decision-end"></span></p>
+        <p id="decision-note-wrap"><strong>Notatka:</strong> <span id="decision-note"></span></p>
+      </div>
+      <div class="decision-actions">
+        <form id="reject-form" method="post" action="">
+          {% csrf_token %}
+          <input type="hidden" name="decision" value="rejected" />
+          <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+          <button type="submit" class="reject-btn">Odrzuc</button>
+        </form>
+        <form id="approve-form" method="post" action="">
+          {% csrf_token %}
+          <input type="hidden" name="decision" value="approved" />
+          <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+          <button type="submit" class="approve-btn">Akceptuj</button>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <script src="{% static 'room_reservations/js/guardian.js' %}?v=20260331a"></script>
+</body>
+</html>

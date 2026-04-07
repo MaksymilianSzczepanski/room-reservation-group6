@@ -1,2 +1,4 @@
-django
-psycopg2-binary
+Django==5.2.12
+psycopg2-binary==2.9.9
+djangorestframework==3.15.1
+django-filter==24.2

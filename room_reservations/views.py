@@ -17,7 +17,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import STATUS_APPROVED, STATUS_CANCELLED, STATUS_PENDING, STATUS_REJECTED
+from .emails import notify_guardians_about_new_reservation, notify_requester_about_decision
 from .models import Attribute, Reservation, Room
+from .permissions import StudentsReadOnlyReservationPermission, can_create_reservations
 from .serializers import RoomSerializer, ReservationSerializer, AttributeSerializer
 
 
@@ -48,6 +50,7 @@ class CalendarView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context["rooms"] = Room.objects.all().order_by("name")
         context["selected_room"] = self.request.GET.get("room")
+        context["can_create_reservations"] = can_create_reservations(self.request.user)
         return context
 
 
@@ -134,7 +137,7 @@ class GuardianDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateVie
 class GuardianReservationDecisionView(LoginRequiredMixin, View):
     def post(self, request, reservation_id, *args, **kwargs):
         reservation = get_object_or_404(
-            Reservation.objects.select_related("room"),
+            Reservation.objects.select_related("room", "user"),
             id=reservation_id,
         )
         if not reservation.room.guardians.filter(user=request.user).exists():
@@ -150,19 +153,25 @@ class GuardianReservationDecisionView(LoginRequiredMixin, View):
             messages.warning(request, "Ta prosba zostala juz rozpatrzona.")
             return redirect("guardian_dashboard")
 
+        decision_comment = request.POST.get("decision_comment", "").strip()
+        if decision == STATUS_REJECTED and not decision_comment:
+            messages.error(request, "Podaj powod odrzucenia rezerwacji.")
+            return redirect("guardian_dashboard")
+
         reservation.status = decision
-        reservation.save(update_fields=["status", "updated_at"])
+        reservation.decision_comment = decision_comment if decision == STATUS_REJECTED else ""
+        reservation.save(update_fields=["status", "decision_comment", "updated_at"])
+        email_sent = notify_requester_about_decision(reservation, request)
 
         if decision == STATUS_APPROVED:
             messages.success(request, "Rezerwacja zostala zaakceptowana.")
         else:
             messages.success(request, "Rezerwacja zostala odrzucona.")
+        if reservation.user.email and not email_sent:
+            messages.warning(request, "Decyzja zostala zapisana, ale nie udalo sie wyslac maila.")
 
         next_url = get_safe_next_url(request, request.POST.get("next", ""), reverse("guardian_dashboard"))
         return redirect(next_url)
-
-
-# --- DRF API ---
 
 
 class RoomViewSet(viewsets.ReadOnlyModelViewSet):
@@ -188,17 +197,18 @@ class AttributeViewSet(viewsets.ReadOnlyModelViewSet):
 class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.select_related("room", "user").order_by("start")
     serializer_class = ReservationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, StudentsReadOnlyReservationPermission]
     filterset_fields = ["room", "status"]
     search_fields = ["title", "room__name", "user__username", "note"]
     ordering_fields = ["start", "end", "status"]
 
     def perform_create(self, serializer):
         try:
-            serializer.save(user=self.request.user)
+            reservation = serializer.save(user=self.request.user)
         except DjangoValidationError as exc:
             message = "; ".join(exc.messages) if getattr(exc, "messages", None) else str(exc)
             raise DRFValidationError(message) from exc
+        notify_guardians_about_new_reservation(reservation, self.request)
 
 
 class CalendarEventsView(APIView):
@@ -242,4 +252,3 @@ class CalendarEventsView(APIView):
             )
 
         return Response(events)
-

@@ -61,6 +61,10 @@ class Reservation(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     title = models.CharField(max_length=200, help_text="Tytul rezerwacji.")
     note = models.TextField(blank=True)
+    decision_comment = models.TextField(
+        blank=True,
+        help_text="Komentarz opiekuna przy decyzji, np. powod odrzucenia.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

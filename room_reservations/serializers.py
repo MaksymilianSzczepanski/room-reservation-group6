@@ -34,10 +34,11 @@ class ReservationSerializer(serializers.ModelSerializer):
             "end",
             "status",
             "note",
+            "decision_comment",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["status", "created_at", "updated_at", "user"]
+        read_only_fields = ["status", "decision_comment", "created_at", "updated_at", "user"]
 
     def create(self, validated_data):
         validated_data.setdefault("status", STATUS_PENDING)

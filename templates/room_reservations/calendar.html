@@ -49,7 +49,7 @@
       </section>
 
       <section class="calendar-card">
-        <div id="calendar"></div>
+        <div id="calendar" data-can-create-reservations="{{ can_create_reservations|yesno:'true,false' }}"></div>
       </section>
 
       <div id="reservation-toast" class="reservation-toast" aria-live="polite"></div>

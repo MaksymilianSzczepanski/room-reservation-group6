@@ -14,6 +14,7 @@
     const decisionNoteWrapEl = document.getElementById("decision-note-wrap");
     const approveForm = document.getElementById("approve-form");
     const rejectForm = document.getElementById("reject-form");
+    const decisionCommentEl = document.getElementById("decision-comment");
 
     sidebarLinks.forEach((link) => {
       link.addEventListener("click", () => {
@@ -68,6 +69,7 @@
 
       approveForm.action = decisionUrl;
       rejectForm.action = decisionUrl;
+      if (decisionCommentEl) decisionCommentEl.value = "";
 
       decisionModal.classList.add("is-open");
       decisionModal.setAttribute("aria-hidden", "false");
@@ -79,6 +81,7 @@
       decisionModal.classList.remove("is-open");
       decisionModal.setAttribute("aria-hidden", "true");
       document.body.classList.remove("decision-open");
+      if (decisionCommentEl) decisionCommentEl.value = "";
     }
   });
 })();

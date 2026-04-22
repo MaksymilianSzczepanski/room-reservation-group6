@@ -20,6 +20,8 @@
     const reservationStartEl = document.getElementById("reservation-start");
     const reservationEndEl = document.getElementById("reservation-end");
     const reservationNoteEl = document.getElementById("reservation-note");
+    const canCreateReservations = calendarEl && calendarEl.dataset.canCreateReservations === "true";
+    const readOnlyMessage = "Studenci moga tylko przegladac rezerwacje sal.";
 
     let toastTimer = null;
     let lastSelectedRange = null;
@@ -37,7 +39,7 @@
       initialView: "dayGridMonth",
       height: "auto",
       locale: "pl",
-      selectable: true,
+      selectable: canCreateReservations,
       selectMirror: true,
       displayEventEnd: true,
       headerToolbar: {
@@ -76,6 +78,12 @@
         return { domNodes: [wrapper] };
       },
       select(info) {
+        if (!canCreateReservations) {
+          showToast(readOnlyMessage);
+          calendar.unselect();
+          return;
+        }
+
         const roomId = getSelectedRoom();
         if (!roomId) {
           showToast("Najpierw wybierz konkretna sale.");
@@ -110,6 +118,11 @@
 
     if (reserveBtn) {
       reserveBtn.addEventListener("click", () => {
+        if (!canCreateReservations) {
+          showToast(readOnlyMessage);
+          return;
+        }
+
         const roomId = getSelectedRoom();
         if (!roomId) {
           showToast("Wybierz sale, aby zlozyc rezerwacje.");
@@ -157,7 +170,11 @@
         roomAttrsEl.innerHTML = "";
         roomDescriptionEl.textContent = "";
         if (reserveBtn) reserveBtn.disabled = true;
-        if (reserveHintEl) reserveHintEl.textContent = "Wybierz sale, aby zlozyc prosbe o rezerwacje.";
+        if (reserveHintEl) {
+          reserveHintEl.textContent = canCreateReservations
+            ? "Wybierz sale, aby zlozyc prosbe o rezerwacje."
+            : readOnlyMessage;
+        }
         return;
       }
 
@@ -181,8 +198,12 @@
         }
 
         roomDescriptionEl.textContent = room.description || "";
-        if (reserveBtn) reserveBtn.disabled = false;
-        if (reserveHintEl) reserveHintEl.textContent = "Mozesz kliknac Zarezerwuj albo zaznaczyc zakres na kalendarzu.";
+        if (reserveBtn) reserveBtn.disabled = !canCreateReservations;
+        if (reserveHintEl) {
+          reserveHintEl.textContent = canCreateReservations
+            ? "Mozesz kliknac Zarezerwuj albo zaznaczyc zakres na kalendarzu."
+            : readOnlyMessage;
+        }
       } catch (error) {
         roomNameEl.textContent = "Nie udalo sie pobrac danych sali";
         roomBuildingEl.textContent = "Blad";
@@ -210,6 +231,10 @@
 
     function openReservationModal(startDate, endDate) {
       if (!modalEl) return;
+      if (!canCreateReservations) {
+        showToast(readOnlyMessage);
+        return;
+      }
 
       reservationStartEl.value = formatDateTimeLocal(startDate);
       reservationEndEl.value = formatDateTimeLocal(endDate);
@@ -231,6 +256,11 @@
 
     async function submitReservation(event) {
       event.preventDefault();
+
+      if (!canCreateReservations) {
+        showReservationError(readOnlyMessage);
+        return;
+      }
 
       const roomId = getSelectedRoom();
       if (!roomId) {

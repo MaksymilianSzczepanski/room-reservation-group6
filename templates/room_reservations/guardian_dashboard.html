@@ -172,6 +172,9 @@
                         <span>Do: {{ reservation.end|date:"Y-m-d H:i" }}</span>
                         <span>Aktualizacja: {{ reservation.updated_at|date:"Y-m-d H:i" }}</span>
                       </div>
+                      {% if reservation.status == "rejected" and reservation.decision_comment %}
+                        <p class="decision-comment"><strong>Powod odrzucenia:</strong> {{ reservation.decision_comment }}</p>
+                      {% endif %}
                     </div>
                   {% endfor %}
                 </div>
@@ -203,6 +206,14 @@
           {% csrf_token %}
           <input type="hidden" name="decision" value="rejected" />
           <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+          <label for="decision-comment">Powod odrzucenia</label>
+          <textarea
+            id="decision-comment"
+            name="decision_comment"
+            rows="3"
+            placeholder="Np. sala jest w tym terminie zarezerwowana na egzamin"
+            required
+          ></textarea>
           <button type="submit" class="reject-btn">Odrzuc</button>
         </form>
         <form id="approve-form" method="post" action="">

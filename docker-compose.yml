@@ -11,14 +11,14 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -q"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   web:
     build: .
-    command: sh -c "python manage.py migrate && python manage.py ensure_superuser && python manage.py runserver 0.0.0.0:8000"
+    command: sh /app/start-web.sh
     env_file: .env
     volumes:
       - .:/app

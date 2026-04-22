@@ -64,3 +64,26 @@ docker compose up --build
 
 - Migracje Django sa wykonywane automatycznie przy starcie kontenera `web`.
 - Konfiguracja srodowiska lokalnego znajduje sie w pliku `.env`.
+
+## Rozwiazywanie problemow
+
+Jesli po starcie widzisz komunikaty podobne do:
+
+- `FATAL: role "postgres" does not exist`
+- `password authentication failed for user "postgres"`
+
+to najczesciej oznacza, ze wolumen `postgres_data` zostal utworzony wczesniej z innymi
+wartosciami `DB_NAME`, `DB_USER` lub `DB_PASS` niz te, ktore sa teraz w `.env`.
+
+W kontenerze `postgres` zmienne `POSTGRES_*` sa brane pod uwage tylko przy pierwszej
+inicjalizacji katalogu danych.
+
+Jesli to lokalna baza testowa i mozna ja odtworzyc od zera:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+Jesli dane musza zostac zachowane, trzeba przywrocic poprzednie wartosci `DB_*` albo
+zalogowac sie do istniejacej bazy i utworzyc brakujaca role lub baze recznie.

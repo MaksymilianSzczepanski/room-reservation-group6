@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/locales-all.global.min.js"></script>
-  <link rel="stylesheet" href="{% static 'room_reservations/css/calendar.css' %}" />
+  <link rel="stylesheet" href="{% static 'room_reservations/css/calendar.css' %}?v=20260423-1" />
 </head>
 <body>
   <div class="hero">
@@ -21,6 +21,13 @@
       </div>
 
       <h1 class="page-title">Kalendarz rezerwacji</h1>
+
+      <div class="page-actions">
+        <a href="{% url 'search' %}" class="back-link">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>Powrot do wyszukiwarki</span>
+        </a>
+      </div>
 
       {% comment %} <section class="toolbar toolbar-hidden" aria-hidden="true">
         <label for="room-select">Sala:</label>
@@ -61,7 +68,7 @@
     <section class="reservation-panel" role="dialog" aria-modal="true" aria-labelledby="reservation-dialog-title">
       <button type="button" class="reservation-close" aria-label="Zamknij" data-close-reservation>&times;</button>
       <h3 id="reservation-dialog-title">Nowa rezerwacja</h3>
-      <p class="reservation-subtitle">Wyslij prosbe o rezerwacje sali. Status zostanie ustawiony na oczekujacy.</p>
+      <p class="reservation-subtitle">Wyslij prosbe o rezerwacje sali. Status zostanie ustawiony na oczekujacy. Rezerwacje sa mozliwe od 07:00 do 22:00.</p>
       <div id="reservation-error" class="reservation-error" hidden></div>
 
       <form id="reservation-form" class="reservation-form">
@@ -84,7 +91,7 @@
     </section>
   </div>
 
-  <script src="{% static 'room_reservations/js/calendar.js' %}?v=20260331a"></script>
+  <script src="{% static 'room_reservations/js/calendar.js' %}?v=20260423-1"></script>
 </body>
 </html>
 

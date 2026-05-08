@@ -11,6 +11,30 @@ from . import (
     STATUS_REJECTED,
 )
 
+RESERVATION_START_HOUR = 7
+RESERVATION_END_HOUR = 22
+
+
+def get_reservation_hours_error(start, end):
+    if not start or not end:
+        return None
+
+    local_start = timezone.localtime(start) if timezone.is_aware(start) else timezone.make_aware(start)
+    local_end = timezone.localtime(end) if timezone.is_aware(end) else timezone.make_aware(end)
+
+    if local_start.date() != local_end.date():
+        return "Rezerwacja musi miescic sie w jednym dniu i godzinach 07:00-22:00."
+
+    start_minutes = (local_start.hour * 60) + local_start.minute
+    end_minutes = (local_end.hour * 60) + local_end.minute
+    allowed_start_minutes = RESERVATION_START_HOUR * 60
+    allowed_end_minutes = RESERVATION_END_HOUR * 60
+
+    if start_minutes < allowed_start_minutes or end_minutes > allowed_end_minutes:
+        return "Rezerwacje sa mozliwe tylko w godzinach 07:00-22:00."
+
+    return None
+
 
 class Attribute(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -75,6 +99,10 @@ class Reservation(models.Model):
     def clean(self):
         if self.end <= self.start:
             raise ValidationError("End time must be after start time.")
+
+        hours_error = get_reservation_hours_error(self.start, self.end)
+        if hours_error:
+            raise ValidationError(hours_error)
 
         overlapping = (
             Reservation.objects.filter(room=self.room)

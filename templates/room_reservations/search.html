@@ -7,7 +7,7 @@
   <title>Wyszukaj sale</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-p1CmSxZ1ZqAV/gR0QLf7J6TEhYlVc3GQuc4GLHZcjHnTUMlzUxr87hcPLZ9eczsQnUnxkwxXHzkwmo7aXstPKw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="{% static 'room_reservations/css/search.css' %}">
+  <link rel="stylesheet" href="{% static 'room_reservations/css/search.css' %}?v=20260423-2">
 </head>
 <body data-is-authenticated="{% if user.is_authenticated %}1{% else %}0{% endif %}" data-show-login-modal="{% if show_login_modal %}1{% else %}0{% endif %}">
   <div class="hero">
@@ -63,10 +63,16 @@
             </div>
           </div>
 
-          <button class="search-btn" id="btn-search" type="button" aria-label="Wyszukaj">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <span>Szukaj</span>
-          </button>
+          <div class="search-actions">
+            <button class="search-btn" id="btn-search" type="button" aria-label="Wyszukaj">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <span>Szukaj</span>
+            </button>
+            <button class="reset-btn" id="btn-reset" type="reset" aria-label="Resetuj filtry">
+              <i class="fa-solid fa-rotate-left"></i>
+              <span>Reset</span>
+            </button>
+          </div>
         </form>
       </div>
 
@@ -106,6 +112,6 @@
     </div>
   {% endif %}
 
-  <script src="{% static 'room_reservations/js/search.js' %}"></script>
+  <script src="{% static 'room_reservations/js/search.js' %}?v=20260423-2"></script>
 </body>
 </html>

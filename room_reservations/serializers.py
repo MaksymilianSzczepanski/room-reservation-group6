@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from . import STATUS_APPROVED, STATUS_PENDING
-from .models import Attribute, Reservation, Room
+from .models import Attribute, Reservation, Room, get_reservation_hours_error
 
 
 class AttributeSerializer(serializers.ModelSerializer):
@@ -51,6 +51,10 @@ class ReservationSerializer(serializers.ModelSerializer):
 
         if start and end and end <= start:
             raise serializers.ValidationError("Koniec rezerwacji musi byc po czasie poczatku.")
+
+        hours_error = get_reservation_hours_error(start, end)
+        if hours_error:
+            raise serializers.ValidationError(hours_error)
 
         if room and start and end:
             overlapping = (

@@ -1,5 +1,7 @@
 (function () {
   document.addEventListener("DOMContentLoaded", function () {
+    const RESERVATION_START_HOUR = 7;
+    const RESERVATION_END_HOUR = 22;
     const calendarEl = document.getElementById("calendar");
     const roomSelect = document.getElementById("room-select");
 
@@ -42,6 +44,13 @@
       selectable: canCreateReservations,
       selectMirror: true,
       displayEventEnd: true,
+      slotMinTime: "07:00:00",
+      slotMaxTime: "22:00:00",
+      businessHours: {
+        daysOfWeek: [1, 2, 3, 4, 5, 6, 0],
+        startTime: "07:00",
+        endTime: "22:00",
+      },
       headerToolbar: {
         left: "prev,next today",
         center: "title",
@@ -91,10 +100,14 @@
           return;
         }
 
-        lastSelectedRange = {
-          start: info.start,
-          end: info.end,
-        };
+        const normalizedRange = normalizeSelectedRange(info.start, info.end, info.allDay);
+        if (!normalizedRange) {
+          showToast("Rezerwacje sa mozliwe tylko w godzinach 07:00-22:00.");
+          calendar.unselect();
+          return;
+        }
+
+        lastSelectedRange = normalizedRange;
         openReservationModal(lastSelectedRange.start, lastSelectedRange.end);
       },
       eventClick(info) {
@@ -287,6 +300,12 @@
         return;
       }
 
+      const hoursError = getReservationHoursError(startDate, endDate);
+      if (hoursError) {
+        showReservationError(hoursError);
+        return;
+      }
+
       const submitBtn = reservationForm.querySelector(".submit-btn");
       submitBtn.disabled = true;
       submitBtn.textContent = "Wysylam...";
@@ -330,8 +349,49 @@
       const start = new Date();
       start.setMinutes(0, 0, 0);
       start.setHours(start.getHours() + 1);
+      if (start.getHours() < RESERVATION_START_HOUR) {
+        start.setHours(RESERVATION_START_HOUR, 0, 0, 0);
+      } else if (start.getHours() >= RESERVATION_END_HOUR || start.getHours() === RESERVATION_END_HOUR - 1 && start.getMinutes() > 0) {
+        start.setDate(start.getDate() + 1);
+        start.setHours(RESERVATION_START_HOUR, 0, 0, 0);
+      }
       const end = new Date(start.getTime() + 60 * 60 * 1000);
       return { start, end };
+    }
+
+    function normalizeSelectedRange(start, end, isAllDay) {
+      if (isAllDay) {
+        const normalizedStart = new Date(start);
+        normalizedStart.setHours(RESERVATION_START_HOUR, 0, 0, 0);
+        return {
+          start: normalizedStart,
+          end: new Date(normalizedStart.getTime() + 60 * 60 * 1000),
+        };
+      }
+
+      const hoursError = getReservationHoursError(start, end);
+      if (hoursError) {
+        return null;
+      }
+
+      return { start, end };
+    }
+
+    function getReservationHoursError(start, end) {
+      if (start.toDateString() !== end.toDateString()) {
+        return "Rezerwacja musi miescic sie w jednym dniu i godzinach 07:00-22:00.";
+      }
+
+      const startMinutes = (start.getHours() * 60) + start.getMinutes();
+      const endMinutes = (end.getHours() * 60) + end.getMinutes();
+      const allowedStartMinutes = RESERVATION_START_HOUR * 60;
+      const allowedEndMinutes = RESERVATION_END_HOUR * 60;
+
+      if (startMinutes < allowedStartMinutes || endMinutes > allowedEndMinutes) {
+        return "Rezerwacje sa mozliwe tylko w godzinach 07:00-22:00.";
+      }
+
+      return "";
     }
 
     function formatDateTimeLocal(value) {

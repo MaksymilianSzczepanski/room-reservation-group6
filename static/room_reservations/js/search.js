@@ -2,6 +2,11 @@
   const resultsEl = document.getElementById('results');
   const form = document.getElementById('search-form');
   const btnSearch = document.getElementById('btn-search');
+  const btnReset = document.getElementById('btn-reset');
+  const buildingInput = document.getElementById('building');
+  const nameInput = document.getElementById('name');
+  const minCapacityInput = document.getElementById('min-capacity');
+  const maxCapacityInput = document.getElementById('max-capacity');
   const buildingList = document.getElementById('building-list');
   const nameList = document.getElementById('name-list');
   const chipContainer = document.getElementById('attr-chips');
@@ -13,7 +18,15 @@
   let allRooms = [];
 
   btnSearch.addEventListener('click', (e) => { e.preventDefault(); runSearch(); });
-  form.building.addEventListener('input', updateRoomHintsForBuilding);
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      window.setTimeout(resetFilters, 0);
+    });
+  }
+  form.addEventListener('reset', () => {
+    window.setTimeout(resetFilters, 0);
+  });
+  buildingInput.addEventListener('input', updateRoomHintsForBuilding);
   resultsEl.addEventListener('click', handleResultsClick);
 
   if (openLoginBtn) {
@@ -93,8 +106,8 @@
   }
 
   function updateRoomHintsForBuilding() {
-    const building = normalize(form.building.value);
-    const selectedRoom = normalize(form.name.value);
+    const building = normalize(buildingInput.value);
+    const selectedRoom = normalize(nameInput.value);
     const filteredNames = new Set();
 
     allRooms.forEach(room => {
@@ -107,16 +120,31 @@
     renderDatalist(nameList, roomOptions);
 
     if (selectedRoom && !roomOptions.some(name => normalize(name) === selectedRoom)) {
-      form.name.value = '';
+      nameInput.value = '';
     }
   }
 
+  function resetFilters() {
+    buildingInput.value = '';
+    nameInput.value = '';
+    minCapacityInput.value = '';
+    maxCapacityInput.value = '';
+    selectedAttrIds.clear();
+    chipContainer.querySelectorAll('.chip.active').forEach((chip) => {
+      chip.classList.remove('active');
+    });
+    updateRoomHintsForBuilding();
+    resultsEl.innerHTML = '<div class="empty">Wpisz kryteria lub wybierz atrybuty i wyszukaj sale.</div>';
+  }
+
+  window.resetSearchFilters = resetFilters;
+
   function buildQuery() {
     const params = new URLSearchParams();
-    const building = form.building.value.trim();
-    const name = form.name.value.trim();
-    const minCap = form.min_capacity.value;
-    const maxCap = form.max_capacity.value;
+    const building = buildingInput.value.trim();
+    const name = nameInput.value.trim();
+    const minCap = minCapacityInput.value;
+    const maxCap = maxCapacityInput.value;
 
     if (building) params.append('building__icontains', building);
     if (name) params.append('name__icontains', name);

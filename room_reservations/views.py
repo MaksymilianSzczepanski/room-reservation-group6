@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -182,10 +183,36 @@ class RoomViewSet(viewsets.ReadOnlyModelViewSet):
         "building": ["exact", "icontains"],
         "name": ["icontains"],
         "capacity": ["gte", "lte"],
-        "attributes__id": ["in", "exact"],
     }
     search_fields = ["name", "building", "attributes__name"]
     ordering_fields = ["name", "capacity"]
+
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset)
+
+        raw_attribute_ids = self.request.query_params.getlist("attributes__id")
+        attribute_ids = []
+        for value in raw_attribute_ids:
+            try:
+                attribute_ids.append(int(value))
+            except (TypeError, ValueError):
+                continue
+
+        unique_attribute_ids = list(dict.fromkeys(attribute_ids))
+        if not unique_attribute_ids:
+            return queryset
+
+        return (
+            queryset.filter(attributes__id__in=unique_attribute_ids)
+            .annotate(
+                matched_attributes=Count(
+                    "attributes",
+                    filter=Q(attributes__id__in=unique_attribute_ids),
+                    distinct=True,
+                )
+            )
+            .filter(matched_attributes=len(unique_attribute_ids))
+        )
 
 
 class AttributeViewSet(viewsets.ReadOnlyModelViewSet):

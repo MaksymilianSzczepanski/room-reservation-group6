@@ -157,6 +157,32 @@ body {
   background: var(--accent-hover);
 }
 
+.search-actions {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 8px;
+  justify-content: end;
+}
+
+.reset-btn {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 12px 18px;
+  min-width: 118px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reset-btn:hover {
+  background: #f8fafc;
+}
+
 .attributes {
   margin-top: 16px;
   display: grid;
@@ -352,6 +378,14 @@ body {
   .search-btn {
     width: 100%;
     margin-top: 4px;
+  }
+
+  .search-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .reset-btn {
+    width: 100%;
   }
 
   .results-header {

@@ -8,6 +8,7 @@ Aplikacja ma umozliwiac zarzadzanie salami oraz ich rezerwowanie przez dwa typy 
 
 - student
 - pracownik
+- administrator
 
 Dodatkowo w systemie wystepuja role administracyjne i organizacyjne:
 
@@ -59,6 +60,76 @@ docker compose up --build
 4. pgAdmin bedzie dostepny pod adresem:
 
 - `http://localhost:8080`
+
+## Testy
+
+Testy znajduja sie glownie w pliku `room_reservations/tests.py` i sa uruchamiane przez wbudowany runner Django. W srodowisku lokalnym najwygodniej odpalac je z poziomu kontenera `web`.
+
+### Zakres testow
+
+Obecny zestaw testow obejmuje przede wszystkim najwazniejsze reguly biznesowe aplikacji:
+
+- uprawnienia do przegladania i tworzenia rezerwacji
+- walidacje godzin rezerwacji i zakaz rezerwacji przechodzacej na kolejny dzien
+- blokowanie nakladajacych sie rezerwacji
+- wysylke emaili po utworzeniu rezerwacji oraz po akceptacji lub odrzuceniu wniosku
+- filtrowanie sal po wielu atrybutach
+- walidacje formularza admina przypisujacego opiekunow do sal
+- bezpieczne przekierowania i obsluge bledow logowania
+- licznik oczekujacych rezerwacji dla opiekuna sali
+- API wydarzen wyswietlanych w kalendarzu
+
+Najwazniejsze klasy testowe:
+
+- `ReservationPermissionTests` - rezerwacje, uprawnienia i emaile
+- `RoomSearchAttributeFilterTests` - filtrowanie sal po atrybutach
+- `RoomGuardianAdminFormTests` - walidacja formularza admina
+- `ReservationHoursHelperTests` - helper sprawdzajacy dozwolone godziny
+- `ReservationModelValidationTests` - konflikty i statusy rezerwacji
+- `ReservationPermissionHelperTests` - helper uprawnien
+- `SearchAndLoginFlowTests` - logowanie i bezpieczne `next`
+- `GuardianPendingCountTests` - licznik oczekujacych prosb
+- `CalendarEventsViewTests` - feed danych do kalendarza
+
+### Uruchamianie testow
+
+Wszystkie testy:
+
+```bash
+docker compose exec web python manage.py test
+```
+
+Caly plik testow:
+
+```bash
+docker compose exec web python manage.py test room_reservations.tests
+```
+
+Jedna klasa testowa:
+
+```bash
+docker compose exec web python manage.py test room_reservations.tests.ReservationPermissionTests
+```
+
+Jeden test:
+
+```bash
+docker compose exec web python manage.py test room_reservations.tests.ReservationPermissionTests.test_new_reservation_sends_email_to_guardian
+```
+
+Bardziej szczegolowy output:
+
+```bash
+docker compose exec web python manage.py test room_reservations.tests --verbosity 2
+```
+
+Szybsza praca podczas poprawek:
+
+```bash
+docker compose exec web python manage.py test room_reservations.tests --keepdb --failfast
+```
+
+Podczas testow emaile nie sa wysylane na prawdziwy serwer SMTP. Testy korzystaja z backendu `locmem`, dzieki czemu mozna sprawdzac zawartosc `mail.outbox` bez wysylki realnych wiadomosci.
 
 ## Uwagi
 

@@ -36,6 +36,23 @@ test('pracownik loguje się i składa wniosek z datami w strefie Warszawy', asyn
   await expect(page.getByText('Wniosek o rezerwację został wysłany do opiekuna.')).toBeVisible();
   expect(posts).toHaveLength(1); expect(posts[0].start).toBe('2026-12-01T09:00:00.000+01:00'); expect(posts[0].room_id).toBe(1);
 });
+test('wyszukiwarka filtruje po kilku elementach wyposażenia i resetuje filtry', async ({ page }) => {
+  const queries = [];
+  await page.route('**/api/**', async route => {
+    const url = new URL(route.request().url()); let value = [];
+    if (url.pathname === '/api/rooms/attributes/') value = [{ id: 1, name: 'Rzutnik' }, { id: 2, name: 'Komputer' }, { id: 3, name: 'Tablica' }];
+    if (url.pathname === '/api/search/') { queries.push(url.searchParams.getAll('attributes__id')); value = [room]; }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Rzutnik' }).click();
+  await page.getByRole('button', { name: 'Komputer' }).click();
+  await expect(page.getByRole('button', { name: 'Rzutnik' })).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => queries.at(-1)).toEqual(['1', '2']);
+  await page.getByRole('button', { name: 'Resetuj filtry' }).first().click();
+  await expect(page.getByRole('button', { name: 'Rzutnik' })).toHaveAttribute('aria-pressed', 'false');
+  await expect.poll(() => queries.at(-1)).toEqual([]);
+});
 test('zwykły pracownik nie otwiera administracji', async ({ page }) => {
   await mockApi(page); await page.addInitScript(() => sessionStorage.setItem('room-reservation-token', 'test-token'));
   await page.goto('/admin'); await expect(page.getByText('Ta strona jest dostępna dla administratora.')).toBeVisible();

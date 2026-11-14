@@ -1,5 +1,5 @@
 import { createContext, lazy, Suspense, useContext, useEffect, useState } from 'react';
-import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
@@ -41,12 +41,12 @@ export default function App() {
   function signOut() { saveToken(null); setUser(null); }
   const auth = { user, ready, openLogin: () => { setError(''); setLogin(true); } };
   return <Auth.Provider value={auth}><div className="hero"><div className="content">
-    <header className="topbar"><Link className="home-link" to="/"><i className="pi pi-building" /> Rezerwacje sal</Link>
-      <nav aria-label="Menu główne"><Link to="/">Wyszukiwarka</Link>
-        {user && <Link to="/my-reservations">Moje rezerwacje</Link>}
-        {!!assignments.data?.length && <Link to="/guardian">Panel opiekuna</Link>}
-        {user?.is_admin && <Link to="/admin">Administracja</Link>}
-        {user ? <><span className="username"><i className="pi pi-user" /> {user.username}</span><Button label="Wyloguj" icon="pi pi-sign-out" outlined onClick={signOut} /></> : <Button label="Zaloguj się" icon="pi pi-sign-in" onClick={auth.openLogin} />}
+    <header className="topbar"><Link className="home-link" to="/"><span className="brand-mark"><i className="pi pi-building" /></span> Rezerwacje sal</Link>
+      <nav aria-label="Menu główne"><NavLink className="nav-link" to="/" end><i className="pi pi-search" /> Wyszukiwarka</NavLink>
+        {user && <NavLink className="nav-link" to="/my-reservations"><i className="pi pi-calendar" /> Moje rezerwacje</NavLink>}
+        {!!assignments.data?.length && <NavLink className="nav-link" to="/guardian"><i className="pi pi-inbox" /> Panel opiekuna</NavLink>}
+        {user?.is_admin && <NavLink className="nav-link" to="/admin"><i className="pi pi-cog" /> Administracja</NavLink>}
+        {user ? <span className="user-box"><span className="username"><i className="pi pi-user" /> {user.username}</span><Button label="Wyloguj" icon="pi pi-sign-out" outlined rounded onClick={signOut} /></span> : <Button label="Zaloguj się" icon="pi pi-sign-in" rounded onClick={auth.openLogin} />}
       </nav>
     </header>
     {error && !login && <Message severity="warn" text={error} />}
@@ -59,7 +59,7 @@ export default function App() {
       <Route path="/admin" element={<RequireUser admin><Admin onAssignmentsChanged={assignments.reload} /></RequireUser>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes></Suspense>}
-    <footer>UniwRersu · System rezerwacji sal</footer>
+    <footer><i className="pi pi-building" /> UniwRersu · System rezerwacji sal · {new Date().getFullYear()}</footer>
   </div></div>
     <Dialog header="Zaloguj się" visible={login} modal onHide={() => { setLogin(false); setCredentials({ username: '', password: '' }); }} style={{ width: '26rem' }} breakpoints={{ '600px': '94vw' }}>
       <p className="muted">Konto pracownika umożliwia składanie wniosków o rezerwację. Przeglądanie sal i kalendarza jest dostępne bez logowania.</p>

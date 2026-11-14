@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>System rezerwacji sal — mikroserwisy</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif }
+    body { margin: 0; background: #07142d; color: #eef5ff }
+    .slide { display: none; box-sizing: border-box; min-height: 100vh; padding: 7vh 8vw; align-content: center }
+    .slide.active { display: grid; gap: 1.5rem }
+    h1 { font-size: clamp(2.2rem, 6vw, 5rem); margin: 0 }
+    h2 { font-size: clamp(2rem, 4vw, 3.5rem); margin: 0 }
+    p, li { font-size: clamp(1.1rem, 2vw, 1.7rem); line-height: 1.5 }
+    ul { margin: 0; padding-left: 1.5em }
+    code, pre { background: #15335b; padding: .2em .4em; border-radius: .4em }
+    pre { padding: 1em; overflow-x: auto; font-size: clamp(.9rem, 1.5vw, 1.35rem) }
+    .accent { color: #77d0ff } .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .8rem }
+    .card { background: #133258; border: 1px solid #286194; border-radius: .8rem; padding: .8rem 1.2rem; font-size: clamp(1rem, 1.8vw, 1.5rem) }
+    nav { position: fixed; right: 2rem; bottom: 1rem; display: flex; align-items: center; gap: .7rem }
+    button { background: #1273c7; color: white; border: 0; border-radius: .5rem; padding: .5rem .8rem; font-size: 1rem; cursor: pointer }
+    a { color: #9ddfff }
+    @media (max-width: 650px) { .grid { grid-template-columns: 1fr } .slide { padding-bottom: 5rem } }
+  </style>
+</head>
+<body>
+  <section class="slide active">
+    <h1>System rezerwacji sal</h1>
+    <p class="accent">Aplikacja oparta na ośmiu mikroserwisach Django</p>
+    <p>PostgreSQL · Docker Compose · Consul · Traefik</p>
+  </section>
+  <section class="slide">
+    <h2>Problem i cel</h2>
+    <ul>
+      <li>Pracownicy rezerwują sale bez konfliktów terminów.</li>
+      <li>Opiekunowie rozpatrują prośby.</li>
+      <li>System wysyła powiadomienia i pokazuje raporty.</li>
+      <li>Każdy obszar działa jako osobna usługa.</li>
+    </ul>
+  </section>
+  <section class="slide">
+    <h2>Osiem usług</h2>
+    <div class="grid">
+      <div class="card">1. Użytkownicy</div><div class="card">2. Sale</div>
+      <div class="card">3. Opiekunowie</div><div class="card">4. Rezerwacje</div>
+      <div class="card">5. Decyzje</div><div class="card">6. Powiadomienia</div>
+      <div class="card">7. Wyszukiwanie</div><div class="card">8. Raporty</div>
+    </div>
+  </section>
+  <section class="slide">
+    <h2>Komunikacja</h2>
+    <pre>Przeglądarka → Traefik → właściwa usługa
+                         ↑
+                       Consul
+
+Rezerwacje → Sale
+Rezerwacje → Powiadomienia → Opiekunowie / Użytkownicy
+Decyzje → Opiekunowie → Rezerwacje</pre>
+    <p>Każda usługa z danymi ma własny schemat PostgreSQL.</p>
+  </section>
+  <section class="slide">
+    <h2>Spójność i błędy</h2>
+    <ul>
+      <li>Blokada bazy chroni przed równoczesną rezerwacją jednej sali.</li>
+      <li>Nieudane powiadomienia pozostają w trwałej kolejce do ponowienia.</li>
+      <li>Decyzja jest zapisana przed zmianą statusu; worker ponawia nieudane wywołania.</li>
+      <li>Wywołania usług mają limit czasu i czytelne odpowiedzi błędów.</li>
+    </ul>
+  </section>
+  <section class="slide">
+    <h2>Demonstracja</h2>
+    <ol>
+      <li>Uruchom <code>docker compose up --build -d</code>.</li>
+      <li>Otwórz <a href="http://localhost:8002/">portal</a> i <a href="http://localhost:8500/">Consul</a>.</li>
+      <li>Dodaj salę i pracownika; przypisz opiekuna.</li>
+      <li>Utwórz rezerwację, rozpatrz ją i sprawdź powiadomienia.</li>
+      <li>Uruchom <code>python scripts/smoke_microservices.py</code>.</li>
+    </ol>
+  </section>
+  <section class="slide">
+    <h2>Wymagania laboratorium</h2>
+    <p>CRUD · PostgreSQL · Consul · API Gateway · komunikacja REST · kontenery Docker</p>
+    <p class="accent">Osiem usług biznesowych, skrypt testowy i raport architektury.</p>
+    <p>Szczegóły: <code>docs/architecture.md</code></p>
+  </section>
+  <nav>
+    <button id="prev" aria-label="Poprzedni slajd">←</button>
+    <span id="counter">1 / 7</span>
+    <button id="next" aria-label="Następny slajd">→</button>
+  </nav>
+  <script>
+    const slides = [...document.querySelectorAll('.slide')];
+    let current = 0;
+    function show(index) {
+      current = Math.max(0, Math.min(index, slides.length - 1));
+      slides.forEach((slide, i) => slide.classList.toggle('active', i === current));
+      document.getElementById('counter').textContent = `${current + 1} / ${slides.length}`;
+    }
+    document.getElementById('prev').onclick = () => show(current - 1);
+    document.getElementById('next').onclick = () => show(current + 1);
+    document.addEventListener('keydown', event => {
+      if (event.key === 'ArrowRight' || event.key === ' ') show(current + 1);
+      if (event.key === 'ArrowLeft') show(current - 1);
+    });
+  </script>
+</body>
+</html>

@@ -1,47 +1,180 @@
 version: '3.8'
 
+x-service: &service
+  image: room-reservation-service:local
+  env_file: .env
+  command: sh /app/microservices/start.sh
+  environment: &service-env
+    DB_HOST: db
+    CONSUL_HTTP_ADDR: http://consul:8500
+    AUTH_SIGNING_KEY: ${AUTH_SIGNING_KEY:-local-signing-key}
+    SERVICE_KEY: ${SERVICE_KEY:-local-service-key}
+  depends_on:
+    db:
+      condition: service_healthy
+    consul:
+      condition: service_started
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/', timeout=2)"]
+    interval: 10s
+    timeout: 3s
+    retries: 10
+
 services:
   db:
     image: postgres:15
-    env_file: .env 
+    env_file: .env
     environment:
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -q"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  web:
+  consul:
+    image: hashicorp/consul:1.20
+    command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0 -data-dir=/consul/data
+    volumes:
+      - consul_data:/consul/data
+    ports:
+      - "8500:8500"
+
+  gateway:
+    image: traefik:v3.1
+    command:
+      - --entrypoints.web.address=:80
+      - --providers.consulcatalog=true
+      - --providers.consulcatalog.endpoint.address=consul:8500
+      - --providers.consulcatalog.exposedbydefault=false
+      - --providers.file.filename=/etc/traefik/frontend.yml
+    volumes:
+      - ./frontend/gateway.yml:/etc/traefik/frontend.yml:ro
+    ports:
+      - "8002:80"
+    depends_on:
+      - consul
+
+  users:
+    <<: *service
     build: .
-    command: sh /app/start-web.sh
+    environment:
+      <<: *service-env
+      SERVICE_NAME: users
+
+  rooms:
+    <<: *service
+    environment:
+      <<: *service-env
+      SERVICE_NAME: rooms
+
+  guardians:
+    <<: *service
+    environment:
+      <<: *service-env
+      SERVICE_NAME: guardians
+
+  reservations:
+    <<: *service
+    environment:
+      <<: *service-env
+      SERVICE_NAME: reservations
+
+  reservation-worker:
+    <<: *service
+    command: python -m microservices.dispatcher
+    environment:
+      <<: *service-env
+      SERVICE_NAME: reservations
+    depends_on:
+      reservations:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+
+  decisions:
+    <<: *service
+    environment:
+      <<: *service-env
+      SERVICE_NAME: decisions
+
+  decision-worker:
+    <<: *service
+    command: python -m microservices.decisions.worker
+    environment:
+      <<: *service-env
+      SERVICE_NAME: decisions
+    depends_on:
+      decisions:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+
+  notifications:
+    <<: *service
+    environment:
+      <<: *service-env
+      SERVICE_NAME: notifications
+
+  search:
+    <<: *service
+    environment:
+      <<: *service-env
+      SERVICE_NAME: search
+
+  reports:
+    <<: *service
+    environment:
+      <<: *service-env
+      SERVICE_NAME: reports
+
+  portal:
+    <<: *service
+    profiles: ["legacy-portal"]
+    environment:
+      <<: *service-env
+      SERVICE_NAME: portal
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  legacy-web:
+    profiles: ["legacy"]
+    build: .
     env_file: .env
+    command: sh /app/start-web.sh
     volumes:
       - .:/app
     ports:
-      - "8000:8000"
+      - "8001:8000"
     depends_on:
       db:
         condition: service_healthy
 
   pgadmin:
     image: dpage/pgadmin4
-    container_name: pgadmin_container
-    restart: always
+    profiles: ["tools"]
     env_file: .env
     environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
-      - PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION=False
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
     ports:
       - "8080:80"
     depends_on:
       db:
         condition: service_healthy
-      
+
 volumes:
   postgres_data:
+  consul_data:

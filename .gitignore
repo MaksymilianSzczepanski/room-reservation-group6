@@ -36,3 +36,9 @@ Thumbs.db
 
 # Docker overrides
 docker-compose.override.yml
+
+# React frontend
+node_modules/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/

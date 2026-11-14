@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>System rezerwacji sal</title>
+  <style>
+    body { font: 16px system-ui, sans-serif; max-width: 1100px; margin: 2rem auto; padding: 0 1rem; color: #182438; background: #f5f7fa }
+    h1 { margin-bottom: .2rem } h2 { margin-top: 0 }
+    main { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem }
+    section { padding: 1.2rem; background: white; border-radius: 12px; box-shadow: 0 1px 6px #0001 }
+    form { display: grid; gap: .6rem } label { display: grid; gap: .2rem }
+    input, select, textarea, button { font: inherit; padding: .55rem; border: 1px solid #bac4d0; border-radius: 6px }
+    button { background: #164aa5; color: white; cursor: pointer; border-color: #164aa5 }
+    button:hover { background: #103877 } pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #e9eef5; padding: .75rem; border-radius: 6px }
+    #message { min-height: 1.5rem; font-weight: 600 } .wide { grid-column: 1 / -1 }
+  </style>
+</head>
+<body>
+  <h1>System rezerwacji sal</h1>
+  <p>Portal do usług Django. Administrator tworzy konta użytkowników; po zalogowaniu można rezerwować sale.</p>
+  <p id="message" role="status"></p>
+  <main>
+    <section>
+      <h2>Logowanie</h2>
+      <form id="login-form">
+        <label>Login <input name="username" required autocomplete="username"></label>
+        <label>Hasło <input name="password" type="password" required autocomplete="current-password"></label>
+        <button>Zaloguj</button>
+      </form>
+      <p id="identity">Niezalogowany</p>
+      <button id="logout" type="button">Wyloguj</button>
+    </section>
+    <section>
+      <h2>Wyszukiwanie sal</h2>
+      <form id="search-form">
+        <label>Nazwa <input name="name__icontains"></label>
+        <label>Budynek <input name="building__icontains"></label>
+        <label>Minimalna pojemność <input name="capacity__gte" type="number" min="0"></label>
+        <label>Dostępność od <input name="start" type="datetime-local"></label>
+        <label>Dostępność do <input name="end" type="datetime-local"></label>
+        <button>Wyszukaj</button>
+      </form>
+      <pre id="search-results"></pre>
+    </section>
+    <section>
+      <h2>Nowa rezerwacja</h2>
+      <form id="reservation-form">
+        <label>ID sali <input name="room_id" type="number" min="1" required></label>
+        <label>Tytuł <input name="title" required></label>
+        <label>Początek <input name="start" type="datetime-local" required></label>
+        <label>Koniec <input name="end" type="datetime-local" required></label>
+        <button>Rezerwuj</button>
+      </form>
+      <button id="list-reservations" type="button">Pokaż rezerwacje</button>
+      <pre id="reservation-results"></pre>
+    </section>
+    <section>
+      <h2>Decyzja opiekuna</h2>
+      <form id="decision-form">
+        <label>ID rezerwacji <input name="reservation_id" type="number" min="1" required></label>
+        <label>Decyzja <select name="status"><option value="approved">Akceptacja</option><option value="rejected">Odrzucenie</option></select></label>
+        <label>Komentarz <textarea name="comment"></textarea></label>
+        <button>Zapisz decyzję</button>
+      </form>
+      <pre id="decision-results"></pre>
+    </section>
+    <section>
+      <h2>Zarządzanie salami (admin)</h2>
+      <form id="room-form">
+        <label>Nazwa <input name="name" required></label>
+        <label>Budynek <input name="building"></label>
+        <label>Pojemność <input name="capacity" type="number" min="0" required></label>
+        <button>Dodaj salę</button>
+      </form>
+      <pre id="room-results"></pre>
+    </section>
+    <section>
+      <h2>Użytkownicy i opiekunowie (admin)</h2>
+      <form id="user-form">
+        <label>Login <input name="username" required></label>
+        <label>Hasło <input name="password" type="password" required></label>
+        <label>E-mail <input name="email" type="email"></label>
+        <label><span>Student</span><input name="is_student" type="checkbox"></label>
+        <button>Dodaj konto</button>
+      </form>
+      <form id="guardian-form">
+        <label>ID użytkownika <input name="user_id" type="number" min="1" required></label>
+        <label>ID sali <input name="room_id" type="number" min="1" required></label>
+        <button>Przypisz opiekuna</button>
+      </form>
+      <pre id="admin-results"></pre>
+    </section>
+    <section class="wide">
+      <h2>Raport i powiadomienia (admin)</h2>
+      <button id="show-report" type="button">Raport</button>
+      <button id="show-notifications" type="button">Historia powiadomień</button>
+      <pre id="report-results"></pre>
+    </section>
+  </main>
+  <script>
+    const tokenKey = 'reservation-api-token';
+    const message = document.getElementById('message');
+    let token = sessionStorage.getItem(tokenKey) || '';
+    function data(form) {
+      const result = Object.fromEntries(new FormData(form));
+      for (const key of ['start', 'end']) {
+        if (result[key]) result[key] = new Date(result[key]).toISOString();
+      }
+      return result;
+    }
+    function show(id, value) { document.getElementById(id).textContent = JSON.stringify(value, null, 2); }
+    async function api(path, method = 'GET', body) {
+      const response = await fetch(path, {
+        method,
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        ...(body ? { body: JSON.stringify(body) } : {})
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+      return result;
+    }
+    function handle(formId, path, outputId, transform = data) {
+      document.getElementById(formId).addEventListener('submit', async (event) => {
+        event.preventDefault();
+        try { show(outputId, await api(path, 'POST', transform(event.target))); message.textContent = 'Zapisano.'; }
+        catch (error) { message.textContent = error.message; }
+      });
+    }
+    document.getElementById('login-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      try {
+        const result = await api('/api/users/login/', 'POST', data(event.target));
+        token = result.token; sessionStorage.setItem(tokenKey, token);
+        document.getElementById('identity').textContent = `Zalogowany: ${result.user.username}`;
+        message.textContent = 'Zalogowano.';
+      } catch (error) { message.textContent = error.message; }
+    });
+    document.getElementById('logout').onclick = () => {
+      token = ''; sessionStorage.removeItem(tokenKey);
+      document.getElementById('identity').textContent = 'Niezalogowany';
+    };
+    document.getElementById('search-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      try {
+        const values = data(event.target);
+        const query = new URLSearchParams(Object.entries(values).filter(([, value]) => value));
+        show('search-results', await api(`/api/search/?${query}`));
+      } catch (error) { message.textContent = error.message; }
+    });
+    handle('reservation-form', '/api/reservations/', 'reservation-results');
+    handle('decision-form', '/api/decisions/', 'decision-results');
+    handle('room-form', '/api/rooms/', 'room-results', form => ({ ...data(form), capacity: Number(form.capacity.value) }));
+    handle('user-form', '/api/users/', 'admin-results', form => ({ ...data(form), is_student: form.is_student.checked }));
+    handle('guardian-form', '/api/guardians/', 'admin-results');
+    document.getElementById('list-reservations').onclick = async () => {
+      try { show('reservation-results', await api('/api/reservations/')); }
+      catch (error) { message.textContent = error.message; }
+    };
+    document.getElementById('show-report').onclick = async () => {
+      try { show('report-results', await api('/api/reports/')); }
+      catch (error) { message.textContent = error.message; }
+    };
+    document.getElementById('show-notifications').onclick = async () => {
+      try { show('report-results', await api('/api/notifications/')); }
+      catch (error) { message.textContent = error.message; }
+    };
+    if (token) api('/api/users/me/').then(user => {
+      document.getElementById('identity').textContent = `Zalogowany: ${user.username}`;
+    }).catch(() => { token = ''; sessionStorage.removeItem(tokenKey); });
+  </script>
+</body>
+</html>

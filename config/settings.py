@@ -117,12 +117,12 @@ LOGIN_URL = '/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'sandbox.smtp.mailtrap.io'
-EMAIL_HOST_USER = 'a53410bb13b723'
-EMAIL_HOST_PASSWORD = '9793ccad21a0ae' # Skopiuj je ze swojej strony
-EMAIL_PORT = '2525'
-EMAIL_USE_TLS = True
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'localhost')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '25'))
+EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS')
 EMAIL_USE_SSL = False
 
 # Opcjonalnie dodaj to, żeby Django wiedziało jaki domyślny nadawca ma się wpisywać:

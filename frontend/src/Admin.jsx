@@ -14,13 +14,15 @@ import { api } from './api';
 import { dateLabel, Feedback, Field, useData } from './ui';
 import { Metric } from './Bookings';
 
+const roles = [{ label: 'Pracownik', value: 'employee' }, { label: 'Administrator', value: 'admin' }, { label: 'Student (tylko podgląd)', value: 'student' }];
+
 export default function Admin({ onAssignmentsChanged }) {
   const [edit, setEdit] = useState(null); const [error, setError] = useState(''); const [notice, setNotice] = useState(''); const [busy, setBusy] = useState(false);
   const state = useData(async () => {
     const [rooms, users, guardians, attributes, reports, notifications] = await Promise.all(['rooms/', 'users/', 'guardians/', 'rooms/attributes/', 'reports/', 'notifications/'].map(path => api(path)));
     return { rooms, users, guardians, attributes, reports, notifications };
   });
-  function open(type, value = {}) { setError(''); setEdit({ type, values: { ...value, ...(type === 'rooms' ? { attribute_ids: value.attributes?.map(attr => attr.id) || [] } : {}) } }); }
+  function open(type, value = {}) { setError(''); setEdit({ type, values: { ...value, ...(type === 'users' ? { role: value.is_admin ? 'admin' : value.is_student ? 'student' : 'employee' } : {}), ...(type === 'rooms' ? { attribute_ids: value.attributes?.map(attr => attr.id) || [] } : {}) } }); }
   const change = (key, value) => setEdit({ ...edit, values: { ...edit.values, [key]: value } });
   function refresh() { state.reload(); onAssignmentsChanged(); }
   async function submit(e) {
@@ -29,7 +31,7 @@ export default function Admin({ onAssignmentsChanged }) {
       const { type, values } = edit; const body = { ...values };
       delete body.id; delete body.attributes;
       if (type === 'rooms') body.capacity = Number(body.capacity);
-      if (type === 'users') { body.is_student = !!body.is_student; body[values.id ? 'is_staff' : 'is_admin'] = !!body.is_admin; if (values.id) delete body.is_admin; }
+      if (type === 'users') { body.is_student = values.role === 'student'; body[values.id ? 'is_staff' : 'is_admin'] = values.role === 'admin'; delete body.role; if (values.id) delete body.is_admin; }
       await api(`${type}/${values.id ? `${values.id}/` : ''}`, { method: values.id ? 'PATCH' : 'POST', body });
       setEdit(null); setNotice('Zmiany zostały zapisane.'); refresh();
     } catch (err) { setError(err.message); } finally { setBusy(false); }
@@ -55,7 +57,7 @@ export default function Admin({ onAssignmentsChanged }) {
     <Dialog header={edit?.values.id ? 'Edytuj dane' : 'Dodaj dane'} visible={!!edit} modal onHide={() => { if (!busy) setEdit(null); }} style={{ width: '32rem' }} breakpoints={{ '600px': '95vw' }}>
       {edit && <form className="form-stack" onSubmit={submit}>
         {edit.type === 'rooms' && <><Field label="Nazwa sali"><InputText autoFocus required value={edit.values.name || ''} onChange={e => change('name', e.target.value)} /></Field><Field label="Budynek"><InputText value={edit.values.building || ''} onChange={e => change('building', e.target.value)} /></Field><Field label="Liczba miejsc"><InputText type="number" min="1" required value={edit.values.capacity ?? ''} onChange={e => change('capacity', e.target.value)} /></Field><Field label="Opis"><InputTextarea rows={3} value={edit.values.description || ''} onChange={e => change('description', e.target.value)} /></Field><Field label="Wyposażenie"><MultiSelect value={edit.values.attribute_ids} options={data.attributes} optionLabel="name" optionValue="id" onChange={e => change('attribute_ids', e.value)} /></Field></>}
-        {edit.type === 'users' && <><Field label="Login"><InputText required disabled={!!edit.values.id} value={edit.values.username || ''} onChange={e => change('username', e.target.value)} /></Field><Field label={edit.values.id ? 'Nowe hasło (opcjonalne)' : 'Hasło'}><InputText type="password" autoComplete="new-password" required={!edit.values.id} value={edit.values.password || ''} onChange={e => change('password', e.target.value)} /></Field><Field label="E-mail"><InputText type="email" value={edit.values.email || ''} onChange={e => change('email', e.target.value)} /></Field>{[['is_admin', 'Administrator'], ['is_student', 'Student'], ...(edit.values.id ? [['is_active', 'Konto aktywne']] : [])].map(([key, label]) => <label className="check-field" key={key}><Checkbox checked={!!edit.values[key]} onChange={e => change(key, e.checked)} />{label}</label>)}</>}
+        {edit.type === 'users' && <><Field label="Login"><InputText required disabled={!!edit.values.id} value={edit.values.username || ''} onChange={e => change('username', e.target.value)} /></Field><Field label={edit.values.id ? 'Nowe hasło (opcjonalne)' : 'Hasło'}><InputText type="password" autoComplete="new-password" required={!edit.values.id} value={edit.values.password || ''} onChange={e => change('password', e.target.value)} /></Field><Field label="E-mail"><InputText type="email" value={edit.values.email || ''} onChange={e => change('email', e.target.value)} /></Field><Field label="Typ konta"><Dropdown inputId="account-role" aria-label="Typ konta" value={edit.values.role} options={roles} onChange={e => change('role', e.value)} /></Field><p className="muted">Pracownik składa wnioski o rezerwację. Uprawnienia opiekuna nadajesz osobno w zakładce Opiekunowie.</p>{edit.values.id && <label className="check-field"><Checkbox checked={!!edit.values.is_active} onChange={e => change('is_active', e.checked)} />Konto aktywne</label>}</>}
         {edit.type === 'guardians' && <><Field label="Sala"><Dropdown required value={edit.values.room_id} options={data.rooms} optionLabel="name" optionValue="id" onChange={e => change('room_id', e.value)} placeholder="Wybierz salę" /></Field><Field label="Opiekun"><Dropdown required value={edit.values.user_id} options={data.users.filter(user => user.is_active && !user.is_student)} optionLabel="username" optionValue="id" onChange={e => change('user_id', e.value)} placeholder="Wybierz użytkownika" /></Field></>}
         {edit.type === 'rooms/attributes' && <Field label="Nazwa wyposażenia"><InputText required value={edit.values.name || ''} onChange={e => change('name', e.target.value)} /></Field>}
         <Feedback error={error} /><Button type="submit" label="Zapisz" loading={busy} />

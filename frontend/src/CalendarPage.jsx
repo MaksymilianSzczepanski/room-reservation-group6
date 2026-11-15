@@ -31,11 +31,24 @@ export default function CalendarPage() {
       .then(items => { setError(''); success(items.map(item => ({ ...item, title: item.status === 'pending' ? 'Oczekuje na decyzję' : 'Zarezerwowana', color: item.status === 'pending' ? '#d97706' : '#16865d' }))); })
       .catch(err => { setError(err.message); failure(err); });
   }, [roomId]);
-  function startBooking(value) {
-    if (!user) { openLogin(); return; } if (!canBook) return;
-    const day = value ? DateTime.fromISO(value, { zone }) : DateTime.now().setZone(zone).plus({ days: 1 });
-    const start = day.set({ hour: value?.includes('T') ? day.hour : 9, minute: 0, second: 0, millisecond: 0 });
-    setError(''); setForm({ title: '', start: localInput(start), end: localInput(start.plus({ hours: 1 })), note: '' });
+  function startBooking(range) {
+    if (!user) { openLogin(actor => { if (!actor.is_student) showBookingForm(range); }); return; }
+    if (canBook) showBookingForm(range);
+  }
+  function showBookingForm(range) {
+    let start, end;
+    if (range && !range.allDay) {
+      start = DateTime.fromISO(range.startStr, { zone }); end = DateTime.fromISO(range.endStr, { zone });
+    } else {
+      const day = range ? DateTime.fromISO(range.startStr, { zone }) : DateTime.now().setZone(zone).plus({ days: 1 });
+      start = day.set({ hour: 9, minute: 0, second: 0, millisecond: 0 }); end = start.plus({ hours: 1 });
+    }
+    setError(''); setForm({ title: '', start: localInput(start), end: localInput(end), note: '' });
+  }
+  function onSelect(info) { info.view.calendar.unselect(); startBooking(info); }
+  function allowSelect(info) {
+    const start = DateTime.fromISO(info.startStr, { zone }), end = DateTime.fromISO(info.endStr, { zone });
+    return info.allDay ? end.diff(start, 'days').days <= 1 : start.hasSame(end.minus({ milliseconds: 1 }), 'day');
   }
   function refresh() { own.reload(); calendar.current?.getApi().refetchEvents(); }
   async function submit(e) {
@@ -59,8 +72,8 @@ export default function CalendarPage() {
       <div className="summary-actions"><Dropdown aria-label="Wybierz salę" value={Number(roomId)} options={rooms.data || [room.data]} optionLabel="name" optionValue="id" onChange={e => navigate(`/calendar/${e.value}`)} />{!user || canBook ? <Button label={user ? 'Zarezerwuj salę' : 'Zaloguj się, aby zarezerwować'} icon="pi pi-plus" onClick={() => startBooking()} /> : <p className="muted">Konto studenta umożliwia przeglądanie kalendarza.</p>}</div></section>
       <p className="calendar-hint">Kalendarz dostępny bez logowania · godziny rezerwacji: 07:00–22:00 · strefa czasu: Warszawa</p>
       {notice && <Message severity="success" text={notice} />}<Feedback error={!form && !selected ? error : ''} />
-      <section className="surface calendar-card" aria-label="Kalendarz sali"><div className="legend"><span><i className="dot pending" /> Oczekuje na decyzję</span><span><i className="dot approved" /> Zatwierdzona</span></div>
-        <FullCalendar key={roomId} ref={calendar} plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, luxonPlugin]} locale={pl} timeZone={zone} initialView="dayGridMonth" height="auto" firstDay={1} nowIndicator slotMinTime="07:00:00" slotMaxTime="22:00:00" allDaySlot={false} displayEventEnd headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' }} events={events} dateClick={info => startBooking(info.dateStr)} eventClick={info => { setError(''); setSelected(own.data?.find(item => item.id === Number(info.event.id)) || { ...info.event.extendedProps, start: info.event.start.toISOString(), end: info.event.end.toISOString() }); }} />
+      <section className="surface calendar-card" aria-label="Kalendarz sali"><div className="legend"><span><i className="dot pending" /> Oczekuje na decyzję</span><span><i className="dot approved" /> Zatwierdzona</span>{(!user || canBook) && <span className="legend-hint"><i className="pi pi-info-circle" /> W widoku tygodnia lub dnia zaznacz myszą godziny, aby zarezerwować. W widoku miesiąca kliknij dzień.</span>}</div>
+        <FullCalendar key={roomId} ref={calendar} plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, luxonPlugin]} locale={pl} timeZone={zone} initialView="dayGridMonth" height="auto" firstDay={1} nowIndicator slotMinTime="07:00:00" slotMaxTime="22:00:00" allDaySlot={false} displayEventEnd headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' }} events={events} selectable={!user || canBook} selectMirror selectOverlap={false} selectAllow={allowSelect} select={onSelect} selectLongPressDelay={300} eventClick={info => { setError(''); setSelected(own.data?.find(item => item.id === Number(info.event.id)) || { ...info.event.extendedProps, start: info.event.start.toISOString(), end: info.event.end.toISOString() }); }} />
       </section></>}
     <Dialog header="Wniosek o rezerwację" visible={!!form} modal onHide={() => { if (!busy) setForm(null); }} style={{ width: '32rem' }} breakpoints={{ '600px': '95vw' }}>
       {form && <form className="form-stack" onSubmit={submit}><p className="muted">{room.data?.name} · jeden dzień, 07:00–22:00 (Warszawa). Wniosek blokuje termin do decyzji lub anulowania.</p>

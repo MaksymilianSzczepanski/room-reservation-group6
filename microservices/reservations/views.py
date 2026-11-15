@@ -195,4 +195,17 @@ def occupied(request):
 
 @endpoint(access="internal")
 def all_reservations(request):
-    return response([as_dict(item) for item in Reservation.objects.order_by("id")])
+    qs = Reservation.objects.order_by("id")
+    start, end = request.GET.get("start"), request.GET.get("end")
+    if start or end:
+        start, end = parse_datetime(start or ""), parse_datetime(end or "")
+        if not start or not end or timezone.is_naive(start) or timezone.is_naive(end):
+            raise APIError("Invalid start or end")
+        qs = qs.filter(start__lt=end, end__gt=start)
+    room_ids = request.GET.getlist("room_id")
+    if room_ids:
+        try:
+            qs = qs.filter(room_id__in=[int(value) for value in room_ids])
+        except ValueError as exc:
+            raise APIError("Invalid room_id") from exc
+    return response([as_dict(item) for item in qs])

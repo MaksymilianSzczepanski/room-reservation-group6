@@ -12,6 +12,11 @@ const messages = {
   'Username already exists': 'Ta nazwa użytkownika jest już zajęta.',
   'Guardian already assigned': 'Ten opiekun jest już przypisany do sali.',
   'Room is used by reservations or guardians': 'Sala ma rezerwacje lub przypisanych opiekunów. Nie można jej usunąć.',
+  'End date must not be before start date': 'Data końcowa nie może być wcześniejsza niż początkowa.',
+  'Date range is limited to 366 days': 'Raport może obejmować maksymalnie 366 dni.',
+  'Not a guardian of any room': 'Nie masz przypisanych sal, dla których można wygenerować raport.',
+  'Invalid start': 'Nieprawidłowa data początkowa.',
+  'Invalid end': 'Nieprawidłowa data końcowa.',
 };
 export async function api(path, { method = 'GET', body, signal } = {}) {
   let result;

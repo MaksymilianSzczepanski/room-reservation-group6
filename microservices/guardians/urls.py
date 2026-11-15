@@ -7,4 +7,5 @@ urlpatterns = [
     path("<int:assignment_id>/", views.assignment_detail),
     path("internal/check/", views.check),
     path("internal/room/<int:room_id>/", views.for_room),
+    path("internal/user/<int:user_id>/", views.for_user),
 ]

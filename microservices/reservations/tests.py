@@ -37,6 +37,20 @@ class ReservationAPITests(TestCase):
         self.assertEqual(self.client.post('/api/reservations/', '{}', content_type='application/json').status_code, 401)
         self.assertEqual(self.client.post('/api/reservations/calendar/?room_id=1').status_code, 405)
 
+    def test_internal_list_filters_by_period_and_room(self):
+        from urllib.parse import urlencode
+        Reservation.objects.create(room_id=1, user_id=2, title='W okresie', start=self.start, end=self.end)
+        Reservation.objects.create(room_id=2, user_id=2, title='Inna sala', start=self.start, end=self.end)
+        Reservation.objects.create(room_id=1, user_id=2, title='Za tydzien', start=self.start + timedelta(days=7),
+                                   end=self.end + timedelta(days=7))
+        key = {'HTTP_X_SERVICE_KEY': 'local-service-key'}
+        self.assertEqual(len(self.client.get('/api/reservations/internal/all/', **key).json()), 3)
+        query = urlencode({'start': (self.start - timedelta(hours=2)).isoformat(),
+                           'end': (self.end + timedelta(hours=2)).isoformat(), 'room_id': 1})
+        result = self.client.get('/api/reservations/internal/all/?' + query, **key)
+        self.assertEqual([row['title'] for row in result.json()], ['W okresie'])
+        self.assertEqual(self.client.get('/api/reservations/internal/all/?start=x&end=y', **key).status_code, 400)
+
     def test_public_calendar_validates_filters(self):
         for query in ('', '?room_id=x', '?room_id=-1', '?room_id=1&start=wrong',
                       '?room_id=1&start=2026-11-01T09:00:00&end=2026-11-02T09:00:00'):

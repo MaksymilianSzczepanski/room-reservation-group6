@@ -96,3 +96,26 @@ test('anulowanie logowania nie wznawia starego wniosku przy kolejnym logowaniu',
   await expect(page.getByRole('button', { name: 'Wyloguj' })).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
+test('opiekun generuje raport zajętości sal dla wybranego okresu', async ({ page }) => {
+  const requests = []; const report = { start: '2026-12-01', end: '2026-12-31', workdays_only: true, day_count: 23, hours_per_day: 15,
+    total: { room_count: 1, available_hours: 345, approved_hours: 69, pending_hours: 3, reservation_count: 12, occupancy: 20, pending_share: 0.9 },
+    rooms: [{ room_id: 1, name: 'Sala 101', building: 'Budynek A', capacity: 30, available_hours: 345, approved_hours: 69, pending_hours: 3, reservation_count: 12, occupancy: 20, pending_share: 0.9 }],
+    by_weekday: [{ weekday: 0, available_hours: 60, approved_hours: 18, occupancy: 30 }] };
+  await page.addInitScript(() => sessionStorage.setItem('room-reservation-token', 'test-token'));
+  await page.route('**/api/**', async route => {
+    const url = new URL(route.request().url()); let value = [];
+    if (url.pathname === '/api/users/me/') value = { id: 2, username: 'opiekun', is_admin: false, is_student: false };
+    if (url.pathname === '/api/guardians/mine/') value = [{ id: 1, user_id: 2, room_id: 1 }];
+    if (url.pathname === '/api/rooms/') value = [room];
+    if (url.pathname === '/api/reports/occupancy/') { requests.push(Object.fromEntries(url.searchParams)); value = report; }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
+  });
+  await page.goto('/guardian'); await page.getByRole('button', { name: 'Raport zajętości' }).click();
+  await page.getByLabel('Od').fill('2026-12-01'); await page.getByLabel('Do').fill('2026-12-31');
+  await page.getByText('Tylko dni robocze').click(); await page.getByRole('button', { name: 'Generuj raport' }).click();
+  await expect.poll(() => requests.at(-1)).toEqual({ start: '2026-12-01', end: '2026-12-31', workdays: '1' });
+  await expect(page.locator('.occ-tile.occ-main strong')).toHaveText('20%');
+  await expect(page.getByRole('img', { name: /Sala 101: zajętość 20%/ })).toBeVisible();
+  const download = page.waitForEvent('download'); await page.getByRole('button', { name: 'Pobierz CSV' }).click();
+  expect((await download).suggestedFilename()).toBe('raport-zajetosci-2026-12-01_2026-12-31.csv');
+});

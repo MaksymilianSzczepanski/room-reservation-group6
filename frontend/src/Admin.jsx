@@ -13,6 +13,7 @@ import { Message } from 'primereact/message';
 import { api } from './api';
 import { dateLabel, Feedback, Field, useData } from './ui';
 import { Metric } from './Bookings';
+import OccupancyReport from './OccupancyReport';
 
 const roles = [{ label: 'Pracownik', value: 'employee' }, { label: 'Administrator', value: 'admin' }, { label: 'Student (tylko podgląd)', value: 'student' }];
 
@@ -51,7 +52,7 @@ export default function Admin({ onAssignmentsChanged }) {
       <TabPanel header="Użytkownicy"><div className="section-heading"><h2>Użytkownicy</h2><Button label="Dodaj użytkownika" icon="pi pi-user-plus" onClick={() => open('users')} /></div>{table(data.users, [['username', 'Login'], ['email', 'E-mail'], ['is_active', 'Aktywny', row => row.is_active ? 'Tak' : 'Nie'], ['is_admin', 'Rola', row => row.is_admin ? 'Administrator' : row.is_student ? 'Student' : 'Pracownik']], editButtons('users'))}</TabPanel>
       <TabPanel header="Opiekunowie"><div className="section-heading"><h2>Przypisania opiekunów</h2><Button label="Przypisz opiekuna" icon="pi pi-plus" onClick={() => open('guardians')} /></div>{table(data.guardians, [['room_id', 'Sala', row => data.rooms.find(room => room.id === row.room_id)?.name || `#${row.room_id}`], ['user_id', 'Opiekun', row => data.users.find(user => user.id === row.user_id)?.username || `#${row.user_id}`]], row => <Button label="Usuń przypisanie" severity="danger" text disabled={busy} onClick={() => remove('guardians', row)} />)}</TabPanel>
       <TabPanel header="Wyposażenie"><div className="section-heading"><h2>Wyposażenie sal</h2><Button label="Dodaj wyposażenie" icon="pi pi-plus" onClick={() => open('rooms/attributes')} /></div>{table(data.attributes, [['name', 'Nazwa']])}</TabPanel>
-      <TabPanel header="Raporty"><h2>Raport rezerwacji</h2><div className="metrics"><Metric label="Sale" value={data.reports.room_count} icon="building" /><Metric label="Wszystkie rezerwacje" value={data.reports.reservation_count} icon="calendar" /><Metric label="Oczekujące" value={data.reports.status_counts.pending || 0} icon="inbox" /></div>{table(data.reports.approved_by_room, [['room_name', 'Sala'], ['count', 'Zatwierdzone rezerwacje']])}</TabPanel>
+      <TabPanel header="Raporty"><h2>Raport rezerwacji</h2><div className="metrics"><Metric label="Sale" value={data.reports.room_count} icon="building" /><Metric label="Wszystkie rezerwacje" value={data.reports.reservation_count} icon="calendar" /><Metric label="Oczekujące" value={data.reports.status_counts.pending || 0} icon="inbox" /></div>{table(data.reports.approved_by_room, [['room_name', 'Sala'], ['count', 'Zatwierdzone rezerwacje']])}<div className="report-divider" /><OccupancyReport description="Procent czasu rezerwacji (07:00–22:00) zajętego przez zatwierdzone rezerwacje we wszystkich salach." /></TabPanel>
       <TabPanel header="Powiadomienia"><h2>Historia powiadomień</h2>{table(data.notifications, [['recipient', 'Odbiorca'], ['subject', 'Temat'], ['state', 'Wysyłka', row => row.state === 'sent' ? 'Wysłano' : 'Błąd'], ['created_at', 'Data', row => dateLabel(row.created_at)]])}</TabPanel>
     </TabView></section>}
     <Dialog header={edit?.values.id ? 'Edytuj dane' : 'Dodaj dane'} visible={!!edit} modal onHide={() => { if (!busy) setEdit(null); }} style={{ width: '32rem' }} breakpoints={{ '600px': '95vw' }}>

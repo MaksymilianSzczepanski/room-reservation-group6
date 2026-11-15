@@ -34,3 +34,12 @@ class GuardianAPITests(TestCase):
         )
         self.assertEqual(checked.json(), {"assigned": True})
         self.assertEqual(remote.call_count, 2)
+
+    def test_internal_assignments_for_user_require_service_key(self):
+        from .models import Assignment
+        Assignment.objects.create(user_id=5, room_id=3)
+        Assignment.objects.create(user_id=5, room_id=1)
+        Assignment.objects.create(user_id=6, room_id=2)
+        self.assertEqual(self.client.get("/api/guardians/internal/user/5/").status_code, 403)
+        result = self.client.get("/api/guardians/internal/user/5/", HTTP_X_SERVICE_KEY="local-service-key")
+        self.assertEqual([row["room_id"] for row in result.json()], [1, 3])

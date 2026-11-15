@@ -55,5 +55,10 @@ def check(request):
 
 
 @endpoint(access="internal")
+def for_user(request, user_id):
+    return response([as_dict(item) for item in Assignment.objects.filter(user_id=user_id).order_by("room_id")])
+
+
+@endpoint(access="internal")
 def for_room(request, room_id):
     return response([as_dict(item) for item in Assignment.objects.filter(room_id=room_id)])

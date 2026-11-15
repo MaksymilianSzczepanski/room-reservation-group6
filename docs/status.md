@@ -17,7 +17,7 @@
 
 ## Weryfikacja
 
-- 18 testów Django we wszystkich ośmiu usługach przeszło.
+- 15 listopada 2026 ponownie wykonano 21 testów Django we wszystkich ośmiu usługach: wszystkie przeszły.
 - Test przez bramę `scripts/smoke_microservices.py` przeszedł, łącznie z anonimowym
   odczytem kalendarza i kontrolą, że nie zawiera danych prywatnych.
 - Kompilacja frontendu w Dockerze przeszła.
@@ -34,7 +34,8 @@
 
 1. Dokończyć kontrolę interfejsu opiekuna i administratora, widoku telefonu
    oraz zachowania formularzy przy błędach API.
-2. Przygotować końcowy raport zaliczeniowy i uzupełnić prezentację wynikami demonstracji.
+2. Uzupełnić prezentację wynikami końcowej demonstracji; dokumentacja techniczna,
+   instrukcja użytkownika, utrzymanie i referencja API są w [indeksie dokumentacji](README.md).
 3. Jeśli wymagane są rzeczywiste wiadomości e-mail: skonfigurować SMTP i sprawdzić dostarczenie.
    Obecnie domyślny backend poczty zapisuje wiadomości do logów.
 

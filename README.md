@@ -1,5 +1,9 @@
 # System rezerwacji sal — mikroserwisy
 
+Pełna [dokumentacja projektu](docs/README.md) obejmuje [opis techniczny](docs/dokumentacja.md),
+[instrukcję użytkownika](docs/uzytkownik.md), [uruchomienie i utrzymanie](docs/utrzymanie.md)
+oraz [referencję API](docs/api.md).
+
 Aktualna wersja uruchamia **osiem usług Django**: `users`, `rooms`, `guardians`,
 `reservations`, `decisions`, `notifications`, `search` i `reports`. Osobny frontend
 React + PrimeReact jest interfejsem, Traefik bramą API, Consul rejestrem usług, a PostgreSQL przechowuje dane

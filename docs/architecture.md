@@ -1,5 +1,8 @@
 # Architektura systemu rezerwacji sal
 
+To skrócony opis architektury. Pełna dokumentacja znajduje się w
+[dokumentacja.md](dokumentacja.md), a indeks instrukcji i API w [README dokumentacji](README.md).
+
 ## Cel i zakres
 
 Projekt realizuje temat alternatywny dopuszczony na stronie 2 instrukcji `laboratory-2026Z.pdf`.
@@ -68,7 +71,7 @@ zakres widoku. Pracownik loguje się dopiero do złożenia wniosku.
 Administracja i składanie wniosków zachowują kontrolę dostępu po stronie Django.
 Administrator wydaje decyzję tylko jako przypisany opiekun. Odrzucenie wymaga komentarza.
 Wniosek `pending` blokuje termin do decyzji lub anulowania; nie ma automatycznego wygaszania.
-Raporty są dostępne w JSON i jako zestawienia w interfejsie; eksport CSV/PDF nie jest zaimplementowany.
+Raporty są dostępne w JSON i jako zestawienia w interfejsie. Raport zajętości sal (`/api/reports/occupancy/`) jest dostępny dla opiekunów i administratora i można go pobrać jako CSV; eksport PDF nie jest zaimplementowany.
 Nieudana zależność zwraca `503` lub `502`, zamiast zawieszać żądanie bez końca.
 
 ## Scenariusz rezerwacji

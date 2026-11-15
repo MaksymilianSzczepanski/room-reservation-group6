@@ -48,6 +48,17 @@ a żądania `/api/` przechodzą przez Traefik do ośmiu usług Django.
 - Administrator: konta, sale, wyposażenie, przypisania, raporty i historia powiadomień.
   Zatwierdzanie wniosków wymaga również przypisania administratora jako opiekuna sali.
 
+Pracownik loguje się przyciskiem **Zaloguj** w górnym pasku. Administrator tworzy jego
+konto w **Administracja → Użytkownicy → Dodaj użytkownika**, wybierając typ konta
+**Pracownik** i ustawiając login oraz hasło. Konto pracownika nie daje dostępu do administracji.
+Po wybraniu terminu w kalendarzu i zalogowaniu formularz rezerwacji otwiera się automatycznie.
+
+Opcjonalne pierwsze konto pracownika można skonfigurować w lokalnym `.env` przez
+`DJANGO_EMPLOYEE_USERNAME`, `DJANGO_EMPLOYEE_PASSWORD` i `DJANGO_EMPLOYEE_EMAIL`.
+Podczas startu usługi `users` polecenie `ensure_employee` utworzy je, jeżeli nie istnieje.
+Nie zmienia hasła istniejącego konta. Puste zmienne pomijają tworzenie konta.
+Po dodaniu zmiennych uruchom `docker compose up -d users`, aby wczytać zmienione środowisko.
+
 Wniosek oczekujący blokuje termin do decyzji lub anulowania i nie wygasa automatycznie.
 Publiczny kalendarz udostępnia tylko identyfikator, salę, przedział czasu i status;
 nie ujawnia tytułów, danych wnioskodawcy, uwag ani komentarzy decyzji.
@@ -75,8 +86,9 @@ npm run test:e2e
 ```
 
 Testy korzystają z atrap API i nie zmieniają bazy danych. Sprawdzają publiczny kalendarz,
-złożenie wniosku oraz ograniczenie dostępu do administracji. Ich wykonanie pozostaje
-do potwierdzenia na środowisku z dostępną przeglądarką.
+logowanie pracownika i złożenie wniosku, filtry, zaznaczanie godzin oraz kontrolę dostępu.
+Siedem testów przeszło w Chrome bez okna. Zmienna `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`
+pozwala wskazać własny plik wykonywalny Chrome zamiast przeglądarki pobranej przez Playwright.
 
 Bieżący zakres i pozostałe zadania: [docs/status.md](docs/status.md).
 
